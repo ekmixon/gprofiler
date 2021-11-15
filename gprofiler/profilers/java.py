@@ -21,6 +21,7 @@ from gprofiler.profilers.profiler_base import ProcessProfilerBase
 from gprofiler.profilers.registry import ProfilerArgument, register_profiler
 from gprofiler.utils import (
     TEMPORARY_STORAGE_PATH,
+    get_mnt_ns_ancestor,
     get_process_nspid,
     pgrep_maps,
     process_comm,
@@ -81,7 +82,7 @@ class AsyncProfiledProcess:
 
     def __init__(self, process: Process, storage_dir: str, buildids: bool, mode: str, safemode: int):
         self.process = process
-        self._process_root = f"/proc/{process.pid}/root"
+        self._process_root = f"/proc/{get_mnt_ns_ancestor(process)}/root"
         self.host_cwd = resolve_proc_root_links(self._process_root, process.cwd())
 
         # not using storage_dir for AP itself on purpose: this path should remain constant for the lifetime
