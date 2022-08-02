@@ -46,15 +46,15 @@ def get_libc_version() -> Tuple[str, str]:
     # catches GLIBC & EGLIBC
     m = re.search(br"GLIBC (.*?)\)", ldd_version)
     if m is not None:
-        return "glibc", decode_libc_version(m.group(1))
+        return "glibc", decode_libc_version(m[1])
     # catches GNU libc
     m = re.search(br"\(GNU libc\) (.*?)\n", ldd_version)
     if m is not None:
-        return "glibc", decode_libc_version(m.group(1))
+        return "glibc", decode_libc_version(m[1])
     # musl
     m = re.search(br"musl libc.*?\nVersion (.*?)\n", ldd_version, re.M)
     if m is not None:
-        return "musl", decode_libc_version(m.group(1))
+        return "musl", decode_libc_version(m[1])
 
     return "unknown", decode_libc_version(ldd_version)
 

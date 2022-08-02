@@ -49,7 +49,7 @@ class APIClient:
 
     def get_base_url(self, api_version: str = None) -> str:
         version = api_version if api_version is not None else self._version
-        return "{}/{}/{}".format(self._host.rstrip("/"), self.BASE_PATH, version)
+        return f'{self._host.rstrip("/")}/{self.BASE_PATH}/{version}'
 
     def _get_query_params(self) -> List[Tuple[str, str]]:
         return [
@@ -75,7 +75,7 @@ class APIClient:
 
         if method.upper() == "GET":
             if data is not None:
-                params.update(data)
+                params |= data
         else:
             opts["headers"]["Content-Encoding"] = "gzip"
             opts["headers"]["Content-type"] = "application/json"
@@ -90,9 +90,12 @@ class APIClient:
                     raise
             opts["data"] = buffer.getvalue()
 
-        opts["params"] = self._get_query_params() + [(k, v) for k, v in params.items()]
+        opts["params"] = self._get_query_params() + list(params.items())
 
-        resp = self._session.request(method, "{}/{}".format(self.get_base_url(api_version), path), **opts)
+        resp = self._session.request(
+            method, f"{self.get_base_url(api_version)}/{path}", **opts
+        )
+
         if 400 <= resp.status_code < 500:
             try:
                 response_data = resp.json()

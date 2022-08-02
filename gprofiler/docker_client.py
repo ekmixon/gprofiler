@@ -55,9 +55,7 @@ class DockerClient:
     def _safely_get_process_container_name(self, pid: int) -> Optional[str]:
         try:
             container_id = self._get_process_container_id(pid)
-            if container_id is None:
-                return None
-            return self._get_container_name(container_id)
+            return None if container_id is None else self._get_container_name(container_id)
         except Exception:
             logger.warning(f"Could not get a container name for PID {pid}", exc_info=True)
             return None
@@ -99,8 +97,7 @@ class DockerClient:
             return None
 
         for line in cgroup.split():
-            found = CONTAINER_ID_PATTERN.findall(line)
-            if found:
+            if found := CONTAINER_ID_PATTERN.findall(line):
                 return found[-1]
 
         return None

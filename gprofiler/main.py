@@ -166,9 +166,9 @@ class GProfiler:
     ) -> None:
         start_ts = get_iso8601_format_time(local_start_time)
         end_ts = get_iso8601_format_time(local_end_time)
-        base_filename = os.path.join(self._output_dir, "profile_{}".format(end_ts))
+        base_filename = os.path.join(self._output_dir, f"profile_{end_ts}")
 
-        collapsed_path = base_filename + ".col"
+        collapsed_path = f"{base_filename}.col"
         Path(collapsed_path).write_text(collapsed_data)
         stripped_collapsed_data = self._strip_container_data(collapsed_data)
 
@@ -177,7 +177,7 @@ class GProfiler:
         logger.info(f"Saved collapsed stacks to {collapsed_path}")
 
         if self._flamegraph:
-            flamegraph_path = base_filename + ".html"
+            flamegraph_path = f"{base_filename}.html"
             flamegraph_data = (
                 Path(resource_path("flamegraph/flamegraph_template.html"))
                 .read_text()
@@ -201,11 +201,12 @@ class GProfiler:
 
     @staticmethod
     def _strip_container_data(collapsed_data):
-        lines = []
-        for line in collapsed_data.splitlines():
-            if line.startswith("#"):
-                continue
-            lines.append(line[line.find(";") + 1 :])
+        lines = [
+            line[line.find(";") + 1 :]
+            for line in collapsed_data.splitlines()
+            if not line.startswith("#")
+        ]
+
         return "\n".join(lines)
 
     def start(self):

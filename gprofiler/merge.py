@@ -114,8 +114,11 @@ def merge_global_perfs(raw_fp_perf: Optional[str], raw_dwarf_perf: Optional[str]
     elif raw_dwarf_perf is None:
         return fp_perf
 
-    total_fp_samples = sum([sum(stacks.values()) for stacks in fp_perf.values()])
-    total_dwarf_samples = sum([sum(stacks.values()) for stacks in dwarf_perf.values()])
+    total_fp_samples = sum(sum(stacks.values()) for stacks in fp_perf.values())
+    total_dwarf_samples = sum(
+        sum(stacks.values()) for stacks in dwarf_perf.values()
+    )
+
     fp_to_dwarf_sample_ratio = total_fp_samples / total_dwarf_samples
 
     # The FP perf is used here as the "main" perf, to which the DWARF perf is scaled.
@@ -123,7 +126,11 @@ def merge_global_perfs(raw_fp_perf: Optional[str], raw_dwarf_perf: Optional[str]
     add_highest_avg_depth_stacks_per_process(
         dwarf_perf, fp_perf, fp_to_dwarf_sample_ratio, merged_pid_to_stacks_counters
     )
-    total_merged_samples = sum([sum(stacks.values()) for stacks in merged_pid_to_stacks_counters.values()])
+    total_merged_samples = sum(
+        sum(stacks.values())
+        for stacks in merged_pid_to_stacks_counters.values()
+    )
+
     logger.debug(
         f"Total FP samples: {total_fp_samples}; Total DWARF samples: {total_dwarf_samples}; "
         f"FP to DWARF ratio: {fp_to_dwarf_sample_ratio}; Total merged samples: {total_merged_samples}"
@@ -225,7 +232,7 @@ def _make_profile_metadata(
         "metadata": metadata,
         "metrics": metrics.__dict__,
     }
-    return "# " + json.dumps(profile_metadata)
+    return f"# {json.dumps(profile_metadata)}"
 
 
 def _get_container_name(pid: int, docker_client: Optional[DockerClient], add_container_names: bool):
@@ -252,7 +259,10 @@ def concatenate_profiles(
         container_name = _get_container_name(pid, docker_client, add_container_names)
         for stack, count in stacks.items():
             total_samples += count
-            lines.append(f"{container_name + ';' if add_container_names else ''}{stack} {count}")
+            lines.append(
+                f"{f'{container_name};' if add_container_names else ''}{stack} {count}"
+            )
+
 
     lines.insert(0, _make_profile_metadata(docker_client, add_container_names, metadata, metrics))
     return "\n".join(lines), total_samples

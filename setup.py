@@ -22,9 +22,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="gprofiler",
-    version=version.group(1),
+    version=version[1],
     author="Granulate",
-    author_email="",  # TODO
+    author_email="",
     description="Production Profiling, Made Easy",
     long_description=long_description,
     long_description_content_type="text/markdown",

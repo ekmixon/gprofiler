@@ -161,7 +161,7 @@ class SystemProfiler(ProfilerBase):
         super().__init__(frequency, duration, stop_event, storage_dir)
         self._perfs: List[PerfProcess] = []
 
-        if perf_mode in ("fp", "smart"):
+        if perf_mode in {"fp", "smart"}:
             self._perf_fp: Optional[PerfProcess] = PerfProcess(
                 self._frequency,
                 self._stop_event,
@@ -174,7 +174,7 @@ class SystemProfiler(ProfilerBase):
         else:
             self._perf_fp = None
 
-        if perf_mode in ("dwarf", "smart"):
+        if perf_mode in {"dwarf", "smart"}:
             self._perf_dwarf: Optional[PerfProcess] = PerfProcess(
                 self._frequency,
                 self._stop_event,

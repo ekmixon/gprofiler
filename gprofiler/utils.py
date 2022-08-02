@@ -85,10 +85,7 @@ def start_process(cmd: Union[str, List[str]], via_staticx: bool, **kwargs) -> Po
 
     env = kwargs.pop("env", None)
     staticx_dir = get_staticx_dir()
-    # are we running under staticx?
     if staticx_dir is not None:
-        # if so, if "via_staticx" was requested, then run the binary with the staticx ld.so
-        # because it's supposed to be run with it.
         if via_staticx:
             # staticx_dir (from STATICX_BUNDLE_DIR) is where staticx has extracted all of the
             # libraries it had collected earlier.
@@ -99,7 +96,7 @@ def start_process(cmd: Union[str, List[str]], via_staticx: bool, **kwargs) -> Po
             env = env if env is not None else os.environ.copy()
             env.update({"LD_LIBRARY_PATH": ""})
 
-    popen = Popen(
+    return Popen(
         cmd,
         stdout=kwargs.pop("stdout", subprocess.PIPE),
         stderr=kwargs.pop("stderr", subprocess.PIPE),
@@ -108,15 +105,11 @@ def start_process(cmd: Union[str, List[str]], via_staticx: bool, **kwargs) -> Po
         env=env,
         **kwargs,
     )
-    return popen
 
 
 def wait_event(timeout: float, stop_event: Event, condition: Callable[[], bool]) -> None:
     end_time = time.monotonic() + timeout
-    while True:
-        if condition():
-            break
-
+    while not condition():
         if stop_event.wait(0.1):
             raise StopEventSetException()
 
@@ -247,14 +240,17 @@ def pgrep_maps(match: str) -> List[Process]:
         2,
     ), f"unexpected 'grep' exit code: {result.returncode}, stdout {result.stdout!r} stderr {result.stderr!r}"
 
-    error_lines = []
-    for line in result.stderr.splitlines():
+    if error_lines := [
+        line
+        for line in result.stderr.splitlines()
         if not (
             line.startswith(b"grep: /proc/")
-            and (line.endswith(b"/maps: No such file or directory") or line.endswith(b"/maps: No such process"))
-        ):
-            error_lines.append(line)
-    if error_lines:
+            and (
+                line.endswith(b"/maps: No such file or directory")
+                or line.endswith(b"/maps: No such process")
+            )
+        )
+    ]:
         logger.error(f"Unexpected 'grep' error output (first 10 lines): {error_lines[:10]}")
 
     processes: List[Process] = []
@@ -458,7 +454,7 @@ def atomically_symlink(target: str, link_node: str) -> None:
     If a file already exists at 'link_node', it is replaced atomically.
     Would be obsoloted by https://bugs.python.org/issue36656, which covers this as well.
     """
-    tmp_path = link_node + ".tmp"
+    tmp_path = f"{link_node}.tmp"
     os.symlink(target, tmp_path)
     os.rename(tmp_path, link_node)
 

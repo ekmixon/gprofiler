@@ -188,7 +188,7 @@ class PythonEbpfProfiler(ProfilerBase):
             if not os.path.islink(build_path):
                 return
 
-            if os.path.lexists(build_path + "/"):
+            if os.path.lexists(f"{build_path}/"):
                 return
 
             lib_modules_uname_path = f"/lib/modules/{uname}"
@@ -221,20 +221,19 @@ class PythonEbpfProfiler(ProfilerBase):
 
     @classmethod
     def _check_missing_headers(cls, stdout) -> bool:
-        if "Unable to find kernel headers." in stdout:
-            print()
-            print("Unable to find kernel headers. Make sure the package is installed for your distribution.")
-            print("If you are using Ubuntu, you can install the required package using:")
-            print()
-            print("    apt install linux-headers-$(uname -r)")
-            print()
-            print("If you are still getting this error and you are running gProfiler as a docker container,")
-            print("make sure /lib/modules and /usr/src are mapped into the container.")
-            print("See the README for further details.")
-            print()
-            return True
-        else:
+        if "Unable to find kernel headers." not in stdout:
             return False
+        print()
+        print("Unable to find kernel headers. Make sure the package is installed for your distribution.")
+        print("If you are using Ubuntu, you can install the required package using:")
+        print()
+        print("    apt install linux-headers-$(uname -r)")
+        print()
+        print("If you are still getting this error and you are running gProfiler as a docker container,")
+        print("make sure /lib/modules and /usr/src are mapped into the container.")
+        print("See the README for further details.")
+        print()
+        return True
 
     @classmethod
     def _pyperf_error(cls, process: Popen):
@@ -391,21 +390,26 @@ class PythonProfiler(ProfilerInterface):
         if python_mode == "py-spy":
             python_mode = "pyspy"
 
-        assert python_mode in ("auto", "pyperf", "pyspy"), f"unexpected mode: {python_mode}"
+        assert python_mode in {
+            "auto",
+            "pyperf",
+            "pyspy",
+        }, f"unexpected mode: {python_mode}"
+
 
         if get_arch() != "x86_64":
             if python_mode == "pyperf":
                 logger.warning("PyPerf is supported only on x86_64, falling back to py-spy")
             python_mode = "pyspy"
 
-        if python_mode in ("auto", "pyperf"):
+        if python_mode in {"auto", "pyperf"}:
             self._ebpf_profiler = self._create_ebpf_profiler(
                 frequency, duration, stop_event, storage_dir, python_pyperf_user_stacks_pages
             )
         else:
             self._ebpf_profiler = None
 
-        if python_mode in ("auto", "pyspy"):
+        if python_mode in {"auto", "pyspy"}:
             self._pyspy_profiler: Optional[PySpyProfiler] = PySpyProfiler(frequency, duration, stop_event, storage_dir)
         else:
             self._pyspy_profiler = None

@@ -68,7 +68,7 @@ class GProfilerLoggingAdapter(logging.LoggerAdapter):
             else:
                 extra_kwargs[k] = v
 
-        extra_kwargs.update(self._get_generic_extra())
+        extra_kwargs |= self._get_generic_extra()
 
         extra = logging_kwargs.get("extra", {})
         extra["gprofiler_adapter_extra"] = extra_kwargs
@@ -159,12 +159,13 @@ class RemoteLogsHandler(logging.Handler):
         if record.exc_info:
             # Use cached exc_text if available.
             exception_traceback = (
-                record.exc_text if record.exc_text else self.formatter.formatException(record.exc_info)
+                record.exc_text or self.formatter.formatException(record.exc_info)
             )
+
         else:
             exception_traceback = ""
 
-        extra = extra if not extra.pop(NO_SERVER_EXTRA_KEY, False) else {}
+        extra = {} if extra.pop(NO_SERVER_EXTRA_KEY, False) else extra
 
         return {
             "message": record.message,
@@ -203,8 +204,11 @@ class ExtraFormatter(logging.Formatter):
         formatted = super().format(record)
         extra = record.gprofiler_adapter_extra  # type: ignore
 
-        formatted_extra = ", ".join(f"{k}={v}" for k, v in extra.items() if k not in self.FILTERED_EXTRA_KEYS)
-        if formatted_extra:
+        if formatted_extra := ", ".join(
+            f"{k}={v}"
+            for k, v in extra.items()
+            if k not in self.FILTERED_EXTRA_KEYS
+        ):
             formatted = f"{formatted} ({formatted_extra})"
 
         return formatted

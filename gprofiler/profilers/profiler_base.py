@@ -101,9 +101,10 @@ class ProcessProfilerBase(ProfilerBase):
             return {}
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(processes_to_profile)) as executor:
-            futures = {}
-            for process in processes_to_profile:
-                futures[executor.submit(self._profile_process, process)] = process.pid
+            futures = {
+                executor.submit(self._profile_process, process): process.pid
+                for process in processes_to_profile
+            }
 
             results = {}
             for future in concurrent.futures.as_completed(futures):

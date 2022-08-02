@@ -151,9 +151,11 @@ def application_docker_images(docker_client: DockerClient) -> Iterable[Mapping[s
         images[runtime], _ = docker_client.images.build(path=str(CONTAINERS_DIRECTORY / runtime))
         musl_dockerfile = CONTAINERS_DIRECTORY / runtime / "musl.Dockerfile"
         if musl_dockerfile.exists():
-            images[runtime + "_musl"], _ = docker_client.images.build(
-                path=str(CONTAINERS_DIRECTORY / runtime), dockerfile=str(musl_dockerfile)
+            images[f"{runtime}_musl"], _ = docker_client.images.build(
+                path=str(CONTAINERS_DIRECTORY / runtime),
+                dockerfile=str(musl_dockerfile),
             )
+
 
     yield images
     for image in images.values():
@@ -170,7 +172,7 @@ def musl() -> bool:
 def application_docker_image(
     application_docker_images: Mapping[str, Image], runtime: str, musl: bool
 ) -> Iterable[Image]:
-    runtime = runtime + ("_musl" if musl else "")
+    runtime += "_musl" if musl else ""
     yield application_docker_images[runtime]
 
 
@@ -236,10 +238,7 @@ def assert_collapsed(runtime: str) -> Callable[[Mapping[str, int], bool], None]:
 @fixture
 def exec_container_image(request, docker_client: DockerClient) -> Optional[Image]:
     image_name = request.config.getoption("--exec-container-image")
-    if image_name is None:
-        return None
-
-    return docker_client.images.pull(image_name)
+    return None if image_name is None else docker_client.images.pull(image_name)
 
 
 def pytest_addoption(parser):

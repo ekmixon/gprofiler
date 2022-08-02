@@ -48,7 +48,7 @@ class JattachException(CalledProcessError):
         ap_log = self._ap_log.strip()
         if not ap_log:
             ap_log = "(empty)"
-        return super().__str__() + f"\nJava PID: {self._target_pid}\nasync-profiler log:\n{ap_log}"
+        return f"{super().__str__()}\nJava PID: {self._target_pid}\nasync-profiler log:\n{ap_log}"
 
     def get_ap_log(self) -> str:
         return self._ap_log
@@ -108,7 +108,7 @@ class AsyncProfiledProcess:
         self._log_path_process = remove_prefix(self._log_path_host, self._process_root)
 
         self._buildids = buildids
-        assert mode in ("cpu", "itimer"), f"unexpected mode: {mode}"
+        assert mode in {"cpu", "itimer"}, f"unexpected mode: {mode}"
         self._mode = mode
         self._safemode = safemode
 
@@ -209,9 +209,14 @@ class AsyncProfiledProcess:
     def _get_stop_cmd(self, with_output: bool) -> List[str]:
         ap_params = ["stop"]
         if with_output:
-            ap_params.append(f"file={self._output_path_process}")
-            ap_params.append(self.OUTPUT_FORMAT)
-            ap_params.append(self.FORMAT_PARAMS)
+            ap_params.extend(
+                (
+                    f"file={self._output_path_process}",
+                    self.OUTPUT_FORMAT,
+                    self.FORMAT_PARAMS,
+                )
+            )
+
         ap_params.append(f"log={self._log_path_process}")
         return self._get_base_cmd() + [",".join(ap_params)]
 
@@ -250,13 +255,12 @@ class AsyncProfiledProcess:
             return True
         except JattachException as e:
             is_loaded = f" {self._libap_path_process}\n" in Path(f"/proc/{self.process.pid}/maps").read_text()
-            if is_loaded:
-                if (
-                    e.returncode == 200  # 200 == AP's COMMAND_ERROR
-                    and e.get_ap_log() == "[ERROR] Profiler already started\n"
-                ):
-                    # profiler was already running
-                    return False
+            if is_loaded and (
+                e.returncode == 200  # 200 == AP's COMMAND_ERROR
+                and e.get_ap_log() == "[ERROR] Profiler already started\n"
+            ):
+                # profiler was already running
+                return False
 
             logger.warning(f"async-profiler DSO was{'' if is_loaded else ' not'} loaded into {self.process.pid}")
             raise
@@ -396,10 +400,13 @@ class JavaProfiler(ProcessProfilerBase):
         # Get Java version
         # TODO we can get the "java" binary by extracting the java home from the libjvm path,
         # then check with that instead (if exe isn't java)
-        if self._version_check and os.path.basename(process.exe()) == "java":
-            if not self._is_jdk_version_supported(self._get_java_version(process)):
-                logger.warning(f"Process {process.pid} running unsupported Java version, skipping...")
-                return None
+        if (
+            self._version_check
+            and os.path.basename(process.exe()) == "java"
+            and not self._is_jdk_version_supported(self._get_java_version(process))
+        ):
+            logger.warning(f"Process {process.pid} running unsupported Java version, skipping...")
+            return None
 
         with AsyncProfiledProcess(process, self._storage_dir, self._buildids, self._mode, self._safemode) as ap_proc:
             return self._profile_ap_process(ap_proc)
@@ -415,10 +422,10 @@ class JavaProfiler(ProcessProfilerBase):
             # surely does.
             ap_proc.stop_async_profiler(with_output=False)
             started = ap_proc.start_async_profiler(self._interval, second_try=True)
-            if not started:
-                raise Exception(
-                    f"async-profiler is still running in {ap_proc.process.pid}, even after trying to stop it!"
-                )
+        if not started:
+            raise Exception(
+                f"async-profiler is still running in {ap_proc.process.pid}, even after trying to stop it!"
+            )
 
         self._stop_event.wait(self._duration)
 
